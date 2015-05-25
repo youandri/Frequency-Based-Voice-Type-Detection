@@ -48,39 +48,27 @@ class Nlp():
         self.wf.setframerate(self.RATE)
         self.wf.writeframes(b''.join(self.frames))
         self.wf.close()
-        #self.process()
-
-    def detect_leading_silence(self,sound, silence_threshold=-25.0, chunk_size=0.1):
-        self.sound = sound
-        self.silence_threshold= silence_threshold
-        self.chunk_size = chunk_size
-        self.trim_ms = 0
-        while self.sound[self.trim_ms:self.trim_ms + self.chunk_size].dBFS < self.silence_threshold:
-            self.trim_ms += self.chunk_size
-        return self.trim_ms
+        self.process()
+       
+    def sr_(self):
+        #Silence Removal
+        def detect_leading_silence(sound):
+            chunk_size=0.1
+            silence_threshold=-25.0
+            trim_ms = 0
+            while sound[trim_ms:trim_ms + chunk_size].dBFS < silence_threshold:
+                trim_ms += chunk_size
+            return trim_ms
+        sound = AudioSegment.from_file("output.wav", format="wav")
+        start_trim = detect_leading_silence(sound)
+        end_trim = detect_leading_silence(sound.reverse())
+        duration = len(sound)
+        trimmed_sound = sound[start_trim:duration - end_trim]
+        trimmed_sound.export("output.wav", format="wav")
 
     def process(self):
-        print('proses')
-        sr = tr.Thread(target=self.sr_)
-        sr.start()
-        # Silence Removal
-        '''self.sound = AudioSegment.from_file("output.wav", format="wav")
-        self.start_trim = self.detect_leading_silence(self.sound)
-        self.end_trim = self.detect_leading_silence(self.sound.reverse())
-        self.duration = len(self.sound)
-        self.trimmed_sound = self.sound[self.start_trim:self.duration - self.end_trim]
-        self.trimmed_sound.export("output.wav", format="wav")
-        print('proses')'''
-    def sr_(self):
-        self.sound = AudioSegment.from_file("output.wav", format="wav")
-        self.start_trim = self.detect_leading_silence(self.sound)
-        self.end_trim = self.detect_leading_silence(self.sound.reverse())
-        self.duration = len(self.sound)
-        self.trimmed_sound = self.sound[self.start_trim:self.duration - self.end_trim]
-        self.trimmed_sound.export("output.wav", format="wav")
-        
+        self.sr_()
 
-    
     def Void(self,event):
         pass
     
@@ -93,7 +81,10 @@ class Nlp():
 
 main = Tk()
 nlp = Nlp(main)
+
+
 main.config(bg='#3498db')
 main.geometry('500x130')
 main.title('Frequency Based Voice Type Detection')
+
 main.mainloop()
