@@ -66,9 +66,37 @@ class Nlp():
         trimmed_sound = sound[start_trim:duration - end_trim]
         trimmed_sound.export("output.wav", format="wav")
 
+    def play_(self):
+        print('Playing')
+        wf = wave.open('output.wav', 'rb')
+        chunk = 2048
+        swidth = wf.getsampwidth()
+        RATE = wf.getframerate()
+        window = np.blackman(chunk)
+        p = pyaudio.PyAudio()
+        stream = p.open(format=p.get_format_from_width(wf.getsampwidth()), channels=wf.getnchannels(), rate=RATE, output=True)
+        data = wf.readframes(chunk)
+        thefreq = []
+        while len(data) == chunk * swidth:
+            stream.write(data)
+            indata = np.array(wave.struct.unpack("%dh" % (len(data) / swidth), data)) * window
+            fftData = abs(np.fft.rfft(indata)) ** 2
+            which = fftData[1:].argmax() + 1
+            if which != len(fftData) - 1:
+                y0, y1, y2 = np.log(fftData[which - 1:which + 2:])
+                x1 = (y2 - y0) * .5 / (2 * y1 - y2 - y0)
+                thefreq.append((which + x1) * RATE / chunk)
+            else:
+                thefreq.append(which * RATE / chunk)
+            data = wf.readframes(chunk)
+        if data:
+            stream.write(data)
+        stream.close()
+        p.terminate()
+        
     def process(self):
         self.sr_()
-
+        self.play_()
     def Void(self,event):
         pass
     
@@ -81,10 +109,7 @@ class Nlp():
 
 main = Tk()
 nlp = Nlp(main)
-
-
 main.config(bg='#3498db')
 main.geometry('500x130')
 main.title('Frequency Based Voice Type Detection')
-
 main.mainloop()
